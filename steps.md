@@ -3,12 +3,12 @@
 > Read `about.md`, `steps.md`, and `AGENTS.md` before any session. Mark `[x]` only after the phase's verification commands pass.
 
 ## Phase 1 — Scaffold + Schema + Migrations
-- [ ] Monorepo workspaces (apps/server, apps/client, packages/shared)
-- [ ] Server responds on `GET /api/health` (port 5101)
-- [ ] Client builds (port 5100, proxy `/api` → 5101)
-- [ ] Shared package typechecks
-- [ ] Drizzle schema for projects, feeds, posts with `UNIQUE(feed_id, guid)`
-- [ ] Migration generated and applied; DB file at `apps/server/data/app.db`
+- [x] Monorepo workspaces (apps/server, apps/client, packages/shared)
+- [x] Server responds on `GET /api/health` (port 5101)
+- [x] Client builds (port 5100, proxy `/api` → 5101)
+- [x] Shared package typechecks
+- [x] Drizzle schema for projects, feeds, posts with `UNIQUE(feed_id, guid)`
+- [x] Migration generated and applied; DB file at `apps/server/data/app.db`
 
 ## Phase 2 — CRUD Projects/Feeds
 - [ ] `GET/POST /api/projects`

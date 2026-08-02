@@ -1,0 +1,5 @@
+{
+  "name": "easy-rss",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"]
+}

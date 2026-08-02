@@ -3,5 +3,5 @@ import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { db } from "./index";
 
 export function runMigrations(): void {
-  migrate(db, { migrationsFolder: join(import.meta.dir, "../../drizzle") });
+  migrate(db, { migrationsFolder: join(process.cwd(), "drizzle") });
 }

@@ -2,6 +2,7 @@ node_modules
 .git
 .gitignore
 apps/client/dist
+apps/server/dist
 apps/server/data
 *.log
 .env

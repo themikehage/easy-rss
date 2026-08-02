@@ -5,6 +5,7 @@ import projectsRouter from "./routes/projects";
 import feedsRouter from "./routes/feeds";
 import postsRouter from "./routes/posts";
 import { startCron } from "./services/cron";
+import { runMigrations } from "./db/migrate";
 
 const app = new Hono();
 
@@ -17,6 +18,7 @@ app.route("/api/projects", projectsRouter);
 app.route("/api/feeds", feedsRouter);
 app.route("/api", postsRouter);
 
+runMigrations();
 startCron();
 
 const port = Number(process.env.PORT ?? 5101);

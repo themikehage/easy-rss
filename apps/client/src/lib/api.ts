@@ -46,11 +46,7 @@ export async function listFeeds(projectId: number): Promise<Feed[]> {
 export async function createFeed(projectId: number, input: CreateFeed): Promise<Feed> {
   return request<Feed>(`/api/projects/${projectId}/feeds`, {
     method: "POST",
-    body: JSON.stringify({
-      url: input.url,
-      name: input.name,
-      adapter_type: input.adapterType,
-    }),
+    body: JSON.stringify(input),
   });
 }
 

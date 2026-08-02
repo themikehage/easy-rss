@@ -44,7 +44,10 @@ router.post("/:id/feeds", zValidator("json", CreateFeed), async (c) => {
   const [project] = await db.select().from(projects).where(eq(projects.id, id));
   if (!project) return c.json({ error: "not found" }, 404);
   const data = c.req.valid("json");
-  const [created] = await db.insert(feeds).values({ ...data, projectId: id }).returning();
+  const [created] = await db
+    .insert(feeds)
+    .values({ url: data.url, name: data.name, adapterType: data.adapter_type, projectId: id })
+    .returning();
   return c.json(created, 201);
 });
 

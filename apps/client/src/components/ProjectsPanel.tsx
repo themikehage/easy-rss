@@ -87,7 +87,7 @@ export default function ProjectsPanel({
     setCreatingFeed(true);
     setFeedError(null);
     try {
-      await createFeed(selectedProjectId, { url, name, adapterType });
+      await createFeed(selectedProjectId, { url, name, adapter_type: adapterType });
       setUrl("");
       setName("");
       setAdapterType("rss");

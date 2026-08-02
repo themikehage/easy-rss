@@ -49,7 +49,7 @@ export type CreateProject = z.infer<typeof CreateProject>;
 export const CreateFeed = z.object({
   url: z.string().url(),
   name: z.string().min(1),
-  adapterType: AdapterType,
+  adapter_type: AdapterType,
 });
 export type CreateFeed = z.infer<typeof CreateFeed>;
 

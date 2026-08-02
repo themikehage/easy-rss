@@ -3,6 +3,8 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import projectsRouter from "./routes/projects";
 import feedsRouter from "./routes/feeds";
+import postsRouter from "./routes/posts";
+import { startCron } from "./services/cron";
 
 const app = new Hono();
 
@@ -13,6 +15,9 @@ app.get("/api/health", (c) => c.json({ status: "ok" }));
 
 app.route("/api/projects", projectsRouter);
 app.route("/api/feeds", feedsRouter);
+app.route("/api", postsRouter);
+
+startCron();
 
 const port = Number(process.env.PORT ?? 5101);
 

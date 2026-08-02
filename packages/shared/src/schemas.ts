@@ -62,3 +62,9 @@ export const UpdatePost = z.object({
   status: PostStatus,
 });
 export type UpdatePost = z.infer<typeof UpdatePost>;
+
+export const PostQuery = z.object({
+  status: PostStatus.optional(),
+  since: z.string().optional(),
+});
+export type PostQuery = z.infer<typeof PostQuery>;

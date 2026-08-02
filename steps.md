@@ -41,4 +41,5 @@
 - [x] `git diff` shows only adapter + registry touched → decoupling validated
 
 ## Deployment (deferred)
-- [ ] Dockerfile + Coolify deployment plan (separate plan, not yet written)
+- [x] Dockerfile + deploy to Coolify (`https://easy-rss.pages.therry.dev`), curl smoke passed
+- [ ] Persistent volume (API 4.1.2 no storage endpoint; dockercompose not proxied — needs Coolify UI or separate hosting)

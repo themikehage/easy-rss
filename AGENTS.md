@@ -71,4 +71,30 @@ docs/plans/             Phase plans 01-06
 
 ## Deploy
 
-Deferred. No Dockerfile or deployment configuration yet. When it happens, document it here (platform, URLs, deploy commands, env vars).
+### Platform
+- **Service:** Coolify (deployment instance: `https://pages.therry.dev`)
+- **App UUID:** `v13oqt7h0wbyxoav2mdr4nhc` (name `easy-rss`)
+- **API URL:** `https://easy-rss.pages.therry.dev` (self-signed cert on generated domain — test with `curl -k`)
+- **Build pack:** `dockerfile` (root `Dockerfile`). dockercompose build pack does NOT get proxied on this instance — do not switch back.
+- **Container:** `oven/bun`, listens on `0.0.0.0:3000` (env `PORT=3000`).
+
+### Auth
+- `COOLIFY_API_KEY` env var. Deployment base URL is `https://pages.therry.dev` (the `COOLIFY_URL`/`opencode.coolify.therry.dev` instance is the manager, NOT for deployments).
+
+### Deploy Commands
+```bash
+# Redeploy current code (push to master first)
+curl -X POST "https://pages.therry.dev/api/v1/deploy?uuid=v13oqt7h0wbyxoav2mdr4nhc&force=true" \
+  -H "Authorization: Bearer $COOLIFY_API_KEY"
+# Monitor
+curl -s "https://pages.therry.dev/api/v1/deployments?application_uuid=v13oqt7h0wbyxoav2mdr4nhc&per_page=1" \
+  -H "Authorization: Bearer $COOLIFY_API_KEY" | jq -r '.[0].status'
+```
+
+### Env vars
+- `PORT=3000`, `NODE_ENV=production`, optional `FETCH_CRON` (default `0 8 * * *`).
+
+### Considerations
+- Migrations run automatically on boot (`src/db/migrate.ts` via `drizzle-orm/bun-sqlite/migrator`).
+- **Persistence is NOT configured.** The Coolify API (4.1.2) does not expose persistent storage, and dockercompose build pack (which supports named volumes) does not get proxied here. DB resets on redeploy. To fix: configure a volume via the Coolify UI, or serve the UI separately.
+- Dockerfile gotchas: COPY every workspace `package.json` before `bun install --frozen-lockfile`; use `bun install --production` (devDeps like `better-sqlite3` fail native build in the bun image).

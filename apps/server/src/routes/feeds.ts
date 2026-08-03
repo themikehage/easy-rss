@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq } from "drizzle-orm";
-import { UpdateFeed } from "shared";
+import { and, desc, eq, gte } from "drizzle-orm";
+import { PostQuery, UpdateFeed } from "shared";
 import { db } from "../db";
 import { feeds, posts } from "../db/schema";
 import { fetchFeed } from "../services/fetchFeed";
@@ -13,6 +13,24 @@ router.get("/:id", async (c) => {
   const [feed] = await db.select().from(feeds).where(eq(feeds.id, id));
   if (!feed) return c.json({ error: "not found" }, 404);
   return c.json(feed);
+});
+
+router.get("/:id/posts", zValidator("query", PostQuery), async (c) => {
+  const id = Number(c.req.param("id"));
+  const { status, since } = c.req.valid("query");
+  const [feed] = await db.select().from(feeds).where(eq(feeds.id, id));
+  if (!feed) return c.json({ error: "not found" }, 404);
+
+  const conditions = [eq(posts.feedId, id)];
+  if (status) conditions.push(eq(posts.status, status));
+  if (since) conditions.push(gte(posts.fetchedAt, since));
+
+  const rows = await db
+    .select()
+    .from(posts)
+    .where(and(...conditions))
+    .orderBy(desc(posts.publishedAt));
+  return c.json(rows);
 });
 
 router.patch("/:id", zValidator("json", UpdateFeed), async (c) => {

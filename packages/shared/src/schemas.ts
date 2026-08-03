@@ -41,6 +41,11 @@ export const Post = z.object({
 });
 export type Post = z.infer<typeof Post>;
 
+export const PostWithFeed = Post.extend({
+  feedName: z.string(),
+});
+export type PostWithFeed = z.infer<typeof PostWithFeed>;
+
 export const CreateProject = z.object({
   name: z.string().min(1),
 });

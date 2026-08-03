@@ -40,6 +40,12 @@
 - [x] Fixture-based verification fetches JSON Feed posts
 - [x] `git diff` shows only adapter + registry touched → decoupling validated
 
+## Phase 7 — UI: Dark Mode, Feed Posts, Post Detail, Routing
+- [x] Dark mode default + light toggle (persisted in localStorage)
+- [x] `GET /api/feeds/:id/posts` and `GET /api/posts/:id` (+ `feedName`) with typechecks + curl smoke
+- [x] react-router-dom routes: `/projects/:id`, `/feeds/:id`, `/posts/:id` deep-linkable
+- [x] `bun run build` passes; client still only fetches via `lib/api.ts`
+
 ## Deployment (deferred)
 - [x] Deploy to Coolify (`https://easy-rss.pages.therry.dev`), front + back served from one container, curl smoke passed
 - [x] Persistent volume (`easy-rss-data` → `/app/data`) via dockercompose + `docker_compose_domains` routing — data survives redeploys

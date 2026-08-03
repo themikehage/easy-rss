@@ -3,6 +3,7 @@ import type {
   Feed,
   Post,
   PostStatus,
+  PostWithFeed,
   Project,
 } from "shared";
 
@@ -43,6 +44,10 @@ export async function listFeeds(projectId: number): Promise<Feed[]> {
   return request<Feed[]>(`/api/projects/${projectId}/feeds`);
 }
 
+export async function getFeed(id: number): Promise<Feed> {
+  return request<Feed>(`/api/feeds/${id}`);
+}
+
 export async function createFeed(projectId: number, input: CreateFeed): Promise<Feed> {
   return request<Feed>(`/api/projects/${projectId}/feeds`, {
     method: "POST",
@@ -72,6 +77,21 @@ export async function listPosts(
   if (params?.since) query.set("since", params.since);
   const qs = query.toString();
   return request<Post[]>(`/api/projects/${projectId}/posts${qs ? `?${qs}` : ""}`);
+}
+
+export async function listFeedPosts(
+  feedId: number,
+  params?: { status?: PostStatus; since?: string },
+): Promise<Post[]> {
+  const query = new URLSearchParams();
+  if (params?.status) query.set("status", params.status);
+  if (params?.since) query.set("since", params.since);
+  const qs = query.toString();
+  return request<Post[]>(`/api/feeds/${feedId}/posts${qs ? `?${qs}` : ""}`);
+}
+
+export async function getPost(id: number): Promise<PostWithFeed> {
+  return request<PostWithFeed>(`/api/posts/${id}`);
 }
 
 export async function updatePostStatus(id: number, status: PostStatus): Promise<Post> {

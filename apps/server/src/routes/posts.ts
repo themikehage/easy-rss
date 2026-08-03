@@ -29,6 +29,14 @@ router.get("/projects/:id/posts", zValidator("query", PostQuery), async (c) => {
   return c.json(rows);
 });
 
+router.get("/posts/:id", async (c) => {
+  const id = Number(c.req.param("id"));
+  const [post] = await db.select().from(posts).where(eq(posts.id, id));
+  if (!post) return c.json({ error: "not found" }, 404);
+  const [feed] = await db.select().from(feeds).where(eq(feeds.id, post.feedId));
+  return c.json({ ...post, feedName: feed?.name ?? "" });
+});
+
 router.patch("/posts/:id", zValidator("json", UpdatePost), async (c) => {
   const id = Number(c.req.param("id"));
   const { status } = c.req.valid("json");

@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import type { Post, PostStatus } from "shared";
-import { listPosts, updatePostStatus } from "../lib/api";
+import { listFeedPosts, listPosts, updatePostStatus } from "../lib/api";
 import { getErrorMessage } from "../lib/error";
 
 type Filter = PostStatus | "all";
+
+export type PostsScope =
+  | { type: "project"; projectId: number }
+  | { type: "feed"; feedId: number };
 
 const FILTERS: { label: string; value: Filter }[] = [
   { label: "All", value: "all" },
@@ -13,11 +18,11 @@ const FILTERS: { label: string; value: Filter }[] = [
 ];
 
 interface PostsListProps {
-  projectId: number;
+  scope: PostsScope;
   refreshKey: number;
 }
 
-export default function PostsList({ projectId, refreshKey }: PostsListProps) {
+export default function PostsList({ scope, refreshKey }: PostsListProps) {
   const [filter, setFilter] = useState<Filter>("all");
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,12 +32,16 @@ export default function PostsList({ projectId, refreshKey }: PostsListProps) {
     setError(null);
     try {
       const params = filter === "all" ? undefined : { status: filter };
-      setPosts(await listPosts(projectId, params));
+      setPosts(
+        scope.type === "project"
+          ? await listPosts(scope.projectId, params)
+          : await listFeedPosts(scope.feedId, params),
+      );
     } catch (err) {
       setError(getErrorMessage(err));
       setPosts(null);
     }
-  }, [projectId, filter]);
+  }, [scope, filter]);
 
   useEffect(() => {
     setPosts(null);
@@ -86,14 +95,12 @@ export default function PostsList({ projectId, refreshKey }: PostsListProps) {
         <ul className="flex flex-col gap-3">
           {posts.map((post) => (
             <li key={post.id} className="rounded-lg border border-border bg-card p-4 shadow-sm">
-              <a
-                href={post.link}
-                target="_blank"
-                rel="noreferrer"
+              <Link
+                to={`/posts/${post.id}`}
                 className="font-medium text-foreground hover:text-primary hover:underline"
               >
                 {post.title}
-              </a>
+              </Link>
               {post.publishedAt && (
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {new Date(post.publishedAt).toLocaleDateString()}

@@ -13,6 +13,7 @@ Non-negotiable rules for working in this repo. These are not suggestions. Every 
 7. **No comments in production code.** Clear names carry intent. Comments are only allowed in test fixtures/documentation when they explain fixture data.
 8. **Atomic conventional commits.** `type(scope): description` (e.g. `feat(api): add projects CRUD`). One logical change per commit, commit after each completed section, never commit secrets.
 9. **Never use ports 5003 or 5551** (reserved for OpenCode Manager). Dev servers use `5100`–`5103` and bind `0.0.0.0`.
+10. **Never leave servers running.** After verification, stop every process you started (dev server, API, fixture, cron). A finished session ends with a clean port map — `ss -ltn` shows nothing we booted.
 
 ## Stack
 

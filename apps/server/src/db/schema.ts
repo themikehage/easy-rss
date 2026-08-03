@@ -16,6 +16,7 @@ export const feeds = sqliteTable("feeds", {
   name: text("name").notNull(),
   adapterType: text("adapter_type").notNull(),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
+  maxPosts: integer("max_posts").notNull().default(50),
   lastFetchedAt: text("last_fetched_at"),
   lastError: text("last_error"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),

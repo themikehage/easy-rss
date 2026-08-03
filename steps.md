@@ -46,6 +46,12 @@
 - [x] react-router-dom routes: `/projects/:id`, `/feeds/:id`, `/posts/:id` deep-linkable
 - [x] `bun run build` passes; client still only fetches via `lib/api.ts`
 
+## Phase 8 — Feed/Project Management: Edit, Delete, Max Posts
+- [x] `maxPosts` (default 50) via Drizzle migration; fetch caps items per run
+- [x] `PATCH`/`DELETE /api/projects/:id` (rename + cascade) and partial `PATCH /api/feeds/:id`
+- [x] Modal-based UI: add/edit feed (name, url, adapter, maxPosts), edit/delete project, delete feed
+- [x] Typechecks + curl smoke (cap, dedup, 400/404, cascade) pass; client build passes
+
 ## Deployment (deferred)
 - [x] Deploy to Coolify (`https://easy-rss.pages.therry.dev`), front + back served from one container, curl smoke passed
 - [x] Persistent volume (`easy-rss-data` → `/app/data`) via dockercompose + `docker_compose_domains` routing — data survives redeploys

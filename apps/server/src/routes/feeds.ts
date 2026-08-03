@@ -40,7 +40,6 @@ router.patch("/:id", zValidator("json", UpdateFeed), async (c) => {
   if (!updated) return c.json({ error: "not found" }, 404);
   return c.json(updated);
 });
-
 router.post("/:id/fetch", async (c) => {
   const id = Number(c.req.param("id"));
   const [feed] = await db.select().from(feeds).where(eq(feeds.id, id));

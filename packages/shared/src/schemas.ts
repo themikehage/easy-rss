@@ -21,6 +21,7 @@ export const Feed = z.object({
   name: z.string(),
   adapterType: AdapterType,
   active: z.boolean(),
+  maxPosts: z.number(),
   lastFetchedAt: z.string().nullable(),
   lastError: z.string().nullable(),
   createdAt: z.string(),
@@ -51,16 +52,30 @@ export const CreateProject = z.object({
 });
 export type CreateProject = z.infer<typeof CreateProject>;
 
+export const UpdateProject = z.object({
+  name: z.string().min(1),
+});
+export type UpdateProject = z.infer<typeof UpdateProject>;
+
 export const CreateFeed = z.object({
   url: z.string().url(),
   name: z.string().min(1),
   adapter_type: AdapterType,
+  maxPosts: z.number().int().min(1).max(500).optional(),
 });
 export type CreateFeed = z.infer<typeof CreateFeed>;
 
-export const UpdateFeed = z.object({
-  active: z.boolean(),
-});
+export const UpdateFeed = z
+  .object({
+    name: z.string().min(1).optional(),
+    url: z.string().url().optional(),
+    adapter_type: AdapterType.optional(),
+    active: z.boolean().optional(),
+    maxPosts: z.number().int().min(1).max(500).optional(),
+  })
+  .refine((data) => Object.values(data).some((v) => v !== undefined), {
+    message: "at least one field required",
+  });
 export type UpdateFeed = z.infer<typeof UpdateFeed>;
 
 export const UpdatePost = z.object({

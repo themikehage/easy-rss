@@ -1,0 +1,1 @@
+ALTER TABLE `feeds` ADD `max_posts` integer DEFAULT 50 NOT NULL;

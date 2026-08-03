@@ -1,4 +1,5 @@
 import type {
+  AdapterType,
   CreateFeed,
   Feed,
   Post,
@@ -6,6 +7,14 @@ import type {
   PostWithFeed,
   Project,
 } from "shared";
+
+export interface FeedPatch {
+  name?: string;
+  url?: string;
+  adapter_type?: AdapterType;
+  active?: boolean;
+  maxPosts?: number;
+}
 
 export interface FetchFeedResult {
   fetched: number;
@@ -40,6 +49,17 @@ export async function createProject(name: string): Promise<Project> {
   });
 }
 
+export async function updateProject(id: number, name: string): Promise<Project> {
+  return request<Project>(`/api/projects/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteProject(id: number): Promise<void> {
+  await request<{ message: string }>(`/api/projects/${id}`, { method: "DELETE" });
+}
+
 export async function listFeeds(projectId: number): Promise<Feed[]> {
   return request<Feed[]>(`/api/projects/${projectId}/feeds`);
 }
@@ -55,11 +75,15 @@ export async function createFeed(projectId: number, input: CreateFeed): Promise<
   });
 }
 
-export async function updateFeed(id: number, patch: { active: boolean }): Promise<Feed> {
+export async function updateFeed(id: number, patch: FeedPatch): Promise<Feed> {
   return request<Feed>(`/api/feeds/${id}`, {
     method: "PATCH",
     body: JSON.stringify(patch),
   });
+}
+
+export async function deleteFeed(id: number): Promise<void> {
+  await request<{ message: string }>(`/api/feeds/${id}`, { method: "DELETE" });
 }
 
 export async function fetchFeed(id: number): Promise<FetchFeedResult> {

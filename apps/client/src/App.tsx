@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import type { Project } from "shared";
-import { createProject, listProjects } from "./lib/api";
+import { createProject, deleteProject, listProjects, updateProject } from "./lib/api";
 import { getErrorMessage } from "./lib/error";
 import { useTheme } from "./lib/theme";
 import { PostsRefreshProvider } from "./lib/postsRefresh";
@@ -41,6 +41,16 @@ export default function App() {
     [],
   );
 
+  const handleUpdateProject = useCallback(async (id: number, name: string): Promise<void> => {
+    const project = await updateProject(id, name);
+    setProjects((prev) => prev.map((p) => (p.id === id ? project : p)));
+  }, []);
+
+  const handleDeleteProject = useCallback(async (id: number): Promise<void> => {
+    await deleteProject(id);
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+  }, []);
+
   return (
     <PostsRefreshProvider>
       <div className="min-h-screen">
@@ -65,6 +75,8 @@ export default function App() {
               projectsLoading={projectsLoading}
               projectsError={projectsError}
               onCreateProject={handleCreateProject}
+              onUpdateProject={handleUpdateProject}
+              onDeleteProject={handleDeleteProject}
             />
           </aside>
           <section className="min-w-0 flex-1">

@@ -21,7 +21,7 @@ export async function fetchFeed(feedId: number): Promise<FetchResult> {
     const adapter = parsed.success ? adapterRegistry[parsed.data] : undefined;
     if (!adapter) throw new Error(`unsupported adapter type: ${feed.adapterType}`);
 
-    const items = await adapter.fetch(feed.url);
+    const items = (await adapter.fetch(feed.url)).slice(0, feed.maxPosts);
     let newPosts = 0;
     for (const item of items) {
       const normalized = adapter.normalize(item);

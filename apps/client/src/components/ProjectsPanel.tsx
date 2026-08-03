@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { AdapterType, type Feed, type Project } from "shared";
-import { createFeed, fetchFeed, getFeed, listFeeds, updateFeed } from "../lib/api";
+import { deleteFeed, fetchFeed, getFeed, listFeeds, updateFeed } from "../lib/api";
 import { getErrorMessage } from "../lib/error";
 import { usePostsRefresh } from "../lib/postsRefresh";
+import FeedFormModal from "./FeedFormModal";
+import ProjectEditModal from "./ProjectEditModal";
 
 const ADAPTER_LABELS: Record<AdapterType, string> = {
   rss: "RSS",
@@ -16,6 +18,8 @@ interface ProjectsPanelProps {
   projectsLoading: boolean;
   projectsError: string | null;
   onCreateProject: (name: string) => Promise<Project>;
+  onUpdateProject: (id: number, name: string) => Promise<void>;
+  onDeleteProject: (id: number) => Promise<void>;
 }
 
 export default function ProjectsPanel({
@@ -23,6 +27,8 @@ export default function ProjectsPanel({
   projectsLoading,
   projectsError,
   onCreateProject,
+  onUpdateProject,
+  onDeleteProject,
 }: ProjectsPanelProps) {
   const { projectId, feedId } = useParams();
   const navigate = useNavigate();
@@ -37,14 +43,12 @@ export default function ProjectsPanel({
   const [feedsLoading, setFeedsLoading] = useState(false);
   const [feedsError, setFeedsError] = useState<string | null>(null);
 
-  const [url, setUrl] = useState("");
-  const [name, setName] = useState("");
-  const [adapterType, setAdapterType] = useState<AdapterType>("rss");
-  const [creatingFeed, setCreatingFeed] = useState(false);
-  const [feedError, setFeedError] = useState<string | null>(null);
-
   const [pendingFeedId, setPendingFeedId] = useState<number | null>(null);
   const [fetchingFeedId, setFetchingFeedId] = useState<number | null>(null);
+
+  const [feedModalOpen, setFeedModalOpen] = useState(false);
+  const [editingFeed, setEditingFeed] = useState<Feed | null>(null);
+  const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
 
   useEffect(() => {
     if (feedId === undefined) {
@@ -88,7 +92,6 @@ export default function ProjectsPanel({
   useEffect(() => {
     setFeeds(null);
     setFeedsError(null);
-    setFeedError(null);
     if (activeProjectId !== null && !Number.isNaN(activeProjectId)) {
       loadFeeds(activeProjectId);
     }
@@ -109,34 +112,15 @@ export default function ProjectsPanel({
     }
   }
 
-  async function handleAddFeed(e: FormEvent) {
-    e.preventDefault();
-    if (activeProjectId === null) return;
-    setCreatingFeed(true);
-    setFeedError(null);
-    try {
-      await createFeed(activeProjectId, { url, name, adapter_type: adapterType });
-      setUrl("");
-      setName("");
-      setAdapterType("rss");
-      await loadFeeds(activeProjectId);
-      bumpPosts();
-    } catch (err) {
-      setFeedError(getErrorMessage(err));
-    } finally {
-      setCreatingFeed(false);
-    }
-  }
-
   async function handleToggleActive(feed: Feed) {
     if (activeProjectId === null) return;
     setPendingFeedId(feed.id);
-    setFeedError(null);
+    setFeedsError(null);
     try {
       await updateFeed(feed.id, { active: !feed.active });
       await loadFeeds(activeProjectId);
     } catch (err) {
-      setFeedError(getErrorMessage(err));
+      setFeedsError(getErrorMessage(err));
     } finally {
       setPendingFeedId(null);
     }
@@ -145,20 +129,76 @@ export default function ProjectsPanel({
   async function handleFetch(feed: Feed) {
     if (activeProjectId === null) return;
     setFetchingFeedId(feed.id);
-    setFeedError(null);
+    setFeedsError(null);
     try {
       await fetchFeed(feed.id);
       await loadFeeds(activeProjectId);
       bumpPosts();
     } catch (err) {
-      setFeedError(getErrorMessage(err));
+      setFeedsError(getErrorMessage(err));
     } finally {
       setFetchingFeedId(null);
     }
   }
 
+  async function handleDeleteFeed(feed: Feed) {
+    if (activeProjectId === null) return;
+    if (!window.confirm(`Delete feed "${feed.name}" and all its posts?`)) return;
+    setFeedsError(null);
+    try {
+      await deleteFeed(feed.id);
+      await loadFeeds(activeProjectId);
+      bumpPosts();
+    } catch (err) {
+      setFeedsError(getErrorMessage(err));
+    }
+  }
+
+  async function handleDeleteProject(project: Project) {
+    if (!window.confirm(`Delete project "${project.name}", all its feeds and posts?`)) return;
+    setProjectError(null);
+    try {
+      await onDeleteProject(project.id);
+      if (activeProjectId === project.id) navigate("/");
+    } catch (err) {
+      setProjectError(getErrorMessage(err));
+    }
+  }
+
+  function openFeedModal(feed: Feed | null) {
+    setEditingFeed(feed);
+    setFeedModalOpen(true);
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      {feedModalOpen && activeProjectId !== null && !Number.isNaN(activeProjectId) && (
+        <FeedFormModal
+          projectId={activeProjectId}
+          feed={editingFeed}
+          onClose={() => setFeedModalOpen(false)}
+          onSaved={() => {
+            loadFeeds(activeProjectId);
+            setFeedModalOpen(false);
+          }}
+        />
+      )}
+      {editingProjectId !== null &&
+        (() => {
+          const project = projects.find((p) => p.id === editingProjectId);
+          if (!project) return null;
+          return (
+            <ProjectEditModal
+              project={project}
+              onClose={() => setEditingProjectId(null)}
+              onSaved={async (name) => {
+                await onUpdateProject(project.id, name);
+                setEditingProjectId(null);
+              }}
+            />
+          );
+        })()}
+
       <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <h2 className="mb-3 text-base font-semibold">Projects</h2>
         <form onSubmit={handleCreateProject} className="mb-3 flex gap-2">
@@ -185,18 +225,40 @@ export default function ProjectsPanel({
         <ul className="flex flex-col gap-1">
           {projects.map((project) => (
             <li key={project.id}>
-              <NavLink
-                to={`/projects/${project.id}`}
-                className={({ isActive }) =>
-                  `block w-full rounded-md px-3 py-1.5 text-left text-sm ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground hover:bg-accent"
-                  }`
-                }
+              <div
+                className={`flex items-center justify-between gap-1 rounded-md px-2 py-1 ${
+                  activeProjectId === project.id ? "bg-primary text-primary-foreground" : ""
+                }`}
               >
-                {project.name}
-              </NavLink>
+                <NavLink
+                  to={`/projects/${project.id}`}
+                  className={`block min-w-0 flex-1 rounded-md px-1 py-1.5 text-left text-sm ${
+                    activeProjectId === project.id
+                      ? "text-primary-foreground"
+                      : "text-foreground hover:bg-accent"
+                  }`}
+                >
+                  <span className="block truncate">{project.name}</span>
+                </NavLink>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label={`Edit ${project.name}`}
+                    onClick={() => setEditingProjectId(project.id)}
+                    className="rounded px-1.5 py-1 text-xs hover:bg-accent"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Delete ${project.name}`}
+                    onClick={() => handleDeleteProject(project)}
+                    className="rounded px-1.5 py-1 text-xs text-destructive hover:bg-accent"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             </li>
           ))}
         </ul>
@@ -204,44 +266,18 @@ export default function ProjectsPanel({
 
       {activeProjectId !== null && !Number.isNaN(activeProjectId) && (
         <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
-          <h2 className="mb-3 text-base font-semibold">Feeds</h2>
-          <form onSubmit={handleAddFeed} className="mb-3 flex flex-col gap-2">
-            <input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Feed URL"
-              className="rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
-            />
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Feed name"
-              className="rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
-            />
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={adapterType}
-                onChange={(e) => setAdapterType(e.target.value as AdapterType)}
-                className="rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
-              >
-                {AdapterType.options.map((value) => (
-                  <option key={value} value={value}>
-                    {ADAPTER_LABELS[value]}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="submit"
-                disabled={creatingFeed || url.trim() === "" || name.trim() === ""}
-                className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
-              >
-                {creatingFeed ? "Adding…" : "Add feed"}
-              </button>
-            </div>
-          </form>
-          {feedError && <p className="mb-2 text-sm text-destructive">{feedError}</p>}
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-semibold">Feeds</h2>
+            <button
+              type="button"
+              onClick={() => openFeedModal(null)}
+              className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
+            >
+              + Add feed
+            </button>
+          </div>
+          {feedsError && <p className="mb-2 text-sm text-destructive">{feedsError}</p>}
           {feedsLoading && <p className="text-sm text-muted-foreground">Loading feeds…</p>}
-          {feedsError && <p className="text-sm text-destructive">{feedsError}</p>}
           {!feedsLoading && !feedsError && feeds !== null && feeds.length === 0 && (
             <p className="text-sm text-muted-foreground">No feeds yet — add one above.</p>
           )}
@@ -252,50 +288,68 @@ export default function ProjectsPanel({
                 return (
                   <li key={feed.id} className="rounded-md border border-border p-3">
                     <div className="flex items-start justify-between gap-2">
-                      <NavLink
-                        to={`/feeds/${feed.id}`}
-                        className="min-w-0"
-                      >
-                        {({ isActive }) => (
-                          <div className={isActive ? "rounded-md bg-muted px-1" : "px-1"}>
-                            <p className="truncate text-sm font-medium">{feed.name}</p>
-                            <p className="truncate text-xs text-muted-foreground">{feed.url}</p>
-                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                              <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
-                                {ADAPTER_LABELS[feed.adapterType]}
-                              </span>
-                              <span className={feed.active ? "text-primary" : "text-muted-foreground"}>
-                                {feed.active ? "Active" : "Paused"}
-                              </span>
+                      <div className="min-w-0">
+                        <NavLink to={`/feeds/${feed.id}`} className="block">
+                          {({ isActive }) => (
+                            <div className={isActive ? "rounded-md bg-muted px-1" : "px-1"}>
+                              <p className="truncate text-sm font-medium">{feed.name}</p>
+                              <p className="truncate text-xs text-muted-foreground">{feed.url}</p>
+                              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                                <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
+                                  {ADAPTER_LABELS[feed.adapterType]}
+                                </span>
+                                <span className="text-muted-foreground">Max {feed.maxPosts}</span>
+                                <span className={feed.active ? "text-primary" : "text-muted-foreground"}>
+                                  {feed.active ? "Active" : "Paused"}
+                                </span>
+                              </div>
+                              {feed.lastError && (
+                                <p className="mt-1 text-xs text-destructive">{feed.lastError}</p>
+                              )}
+                              {feed.lastFetchedAt && (
+                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                  Last fetched {new Date(feed.lastFetchedAt).toLocaleString()}
+                                </p>
+                              )}
                             </div>
-                            {feed.lastError && (
-                              <p className="mt-1 text-xs text-destructive">{feed.lastError}</p>
-                            )}
-                            {feed.lastFetchedAt && (
-                              <p className="mt-0.5 text-xs text-muted-foreground">
-                                Last fetched {new Date(feed.lastFetchedAt).toLocaleString()}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </NavLink>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => handleToggleActive(feed)}
-                          className="rounded-md border border-border px-2 py-1 text-xs disabled:opacity-50"
-                        >
-                          {feed.active ? "Pause" : "Activate"}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => handleFetch(feed)}
-                          className="rounded-md border border-border px-2 py-1 text-xs disabled:opacity-50"
-                        >
-                          {fetchingFeedId === feed.id ? "Fetching…" : "Fetch now"}
-                        </button>
+                          )}
+                        </NavLink>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openFeedModal(feed)}
+                            className="rounded px-1.5 py-1 text-xs hover:bg-accent"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteFeed(feed)}
+                            className="rounded px-1.5 py-1 text-xs text-destructive hover:bg-accent"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => handleToggleActive(feed)}
+                            className="rounded-md border border-border px-2 py-1 text-xs disabled:opacity-50"
+                          >
+                            {feed.active ? "Pause" : "Activate"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => handleFetch(feed)}
+                            className="rounded-md border border-border px-2 py-1 text-xs disabled:opacity-50"
+                          >
+                            {fetchingFeedId === feed.id ? "Fetching…" : "Fetch now"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </li>

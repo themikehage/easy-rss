@@ -1,7 +1,11 @@
-FROM oven/bun:1 AS base
+FROM oven/bun:1-debian AS base
 WORKDIR /app
 
 FROM base AS builder
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY package.json bun.lock ./
 COPY apps/server/package.json ./apps/server/
 COPY apps/client/package.json ./apps/client/

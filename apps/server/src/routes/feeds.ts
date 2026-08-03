@@ -3,7 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { eq } from "drizzle-orm";
 import { UpdateFeed } from "shared";
 import { db } from "../db";
-import { feeds } from "../db/schema";
+import { feeds, posts } from "../db/schema";
 import { fetchFeed } from "../services/fetchFeed";
 
 const router = new Hono();
@@ -30,6 +30,15 @@ router.post("/:id/fetch", async (c) => {
   const result = await fetchFeed(id);
   const [updated] = await db.select().from(feeds).where(eq(feeds.id, id));
   return c.json({ ...result, feed: updated });
+});
+
+router.delete("/:id", async (c) => {
+  const id = Number(c.req.param("id"));
+  const [feed] = await db.select().from(feeds).where(eq(feeds.id, id));
+  if (!feed) return c.json({ error: "not found" }, 404);
+  await db.delete(posts).where(eq(posts.feedId, id));
+  await db.delete(feeds).where(eq(feeds.id, id));
+  return c.json({ message: "deleted" });
 });
 
 export default router;

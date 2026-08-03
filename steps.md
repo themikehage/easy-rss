@@ -41,5 +41,5 @@
 - [x] `git diff` shows only adapter + registry touched → decoupling validated
 
 ## Deployment (deferred)
-- [x] Dockerfile + deploy to Coolify (`https://easy-rss.pages.therry.dev`), curl smoke passed
-- [ ] Persistent volume (API 4.1.2 no storage endpoint; dockercompose not proxied — needs Coolify UI or separate hosting)
+- [x] Deploy to Coolify (`https://easy-rss.pages.therry.dev`), front + back served from one container, curl smoke passed
+- [x] Persistent volume (`easy-rss-data` → `/app/data`) via dockercompose + `docker_compose_domains` routing — data survives redeploys

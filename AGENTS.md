@@ -74,9 +74,10 @@ docs/plans/             Phase plans 01-06
 ### Platform
 - **Service:** Coolify (deployment instance: `https://pages.therry.dev`)
 - **App UUID:** `v13oqt7h0wbyxoav2mdr4nhc` (name `easy-rss`)
-- **API URL:** `https://easy-rss.pages.therry.dev` (self-signed cert on generated domain — test with `curl -k`)
-- **Build pack:** `dockerfile` (root `Dockerfile`). dockercompose build pack does NOT get proxied on this instance — do not switch back.
-- **Container:** `oven/bun`, listens on `0.0.0.0:3000` (env `PORT=3000`).
+- **App URL:** `https://easy-rss.pages.therry.dev` — serves the React UI **and** the API (`/api/*`) from one container (self-signed cert on generated domain — test with `curl -k`)
+- **Build pack:** `dockercompose` (root `docker-compose.yml` + `Dockerfile`). Routing works because `docker_compose_domains` maps the compose service to the domain (see coolify skill).
+- **Container:** `oven/bun:1-debian` (multi-stage), listens on `0.0.0.0:3000` (env `PORT=3000`). DB lives on the `easy-rss-data` volume at `/app/data/app.db` (`DATA_DIR=/app/data`).
+- Server serves the SPA: `serveStatic` for `/assets/*`, `notFound` returns `public/index.html` for non-`/api` paths, JSON 404 for `/api/*`.
 
 ### Auth
 - `COOLIFY_API_KEY` env var. Deployment base URL is `https://pages.therry.dev` (the `COOLIFY_URL`/`opencode.coolify.therry.dev` instance is the manager, NOT for deployments).
@@ -86,15 +87,16 @@ docs/plans/             Phase plans 01-06
 # Redeploy current code (push to master first)
 curl -X POST "https://pages.therry.dev/api/v1/deploy?uuid=v13oqt7h0wbyxoav2mdr4nhc&force=true" \
   -H "Authorization: Bearer $COOLIFY_API_KEY"
+# Note: response is nested under .deployments[0].deployment_uuid
 # Monitor
 curl -s "https://pages.therry.dev/api/v1/deployments?application_uuid=v13oqt7h0wbyxoav2mdr4nhc&per_page=1" \
   -H "Authorization: Bearer $COOLIFY_API_KEY" | jq -r '.[0].status'
 ```
 
 ### Env vars
-- `PORT=3000`, `NODE_ENV=production`, optional `FETCH_CRON` (default `0 8 * * *`).
+- `PORT=3000`, `NODE_ENV=production`, `DATA_DIR=/app/data`, optional `FETCH_CRON` (default `0 8 * * *`).
 
 ### Considerations
-- Migrations run automatically on boot (`src/db/migrate.ts` via `drizzle-orm/bun-sqlite/migrator`).
-- **Persistence is NOT configured.** The Coolify API (4.1.2) does not expose persistent storage, and dockercompose build pack (which supports named volumes) does not get proxied here. DB resets on redeploy. To fix: configure a volume via the Coolify UI, or serve the UI separately.
-- Dockerfile gotchas: COPY every workspace `package.json` before `bun install --frozen-lockfile`; use `bun install --production` (devDeps like `better-sqlite3` fail native build in the bun image).
+- Migrations run automatically on boot (`src/db/migrate.ts` via `drizzle-orm/bun-sqlite/migrator`; folder resolved from `process.cwd()/drizzle`).
+- **Persistence IS configured:** the `easy-rss-data` named volume (mounted at `/app/data`) survives redeploys. UI is served from the same container.
+- Dockerfile gotchas: COPY every workspace `package.json` before `bun install --frozen-lockfile`; `--production` in the runner (native devDeps fail in the bun image); `oven/bun:1-debian` + `python3 make g++` in the builder so the full install (needed to build the client) compiles `better-sqlite3`.

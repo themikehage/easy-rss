@@ -3,7 +3,7 @@
 **Type:** PRODUCTION
 **Description:** Minimalist, API-first tech-news feed aggregator. Ingests RSS, Atom, and JSON Feed sources organized by project, dedupes posts, and exposes them over a REST API. It is the ingestion layer of the YouTube-shorts pipeline but stays decoupled so any consumer (n8n, scripts, other services) can use it.
 **Stack:** Bun, Hono, Zod, SQLite (`bun:sqlite`), Drizzle ORM, node-cron, fast-xml-parser, React, Vite, TypeScript, Tailwind CSS
-**Deployment Target:** Deferred (Coolify planned later)
+**Deployment Target:** Deployed to Coolify (`https://easy-rss.pages.therry.dev`)
 **Ports:** API `5101` (bound to `0.0.0.0`), UI `5100` (bound to `0.0.0.0`)
 
 ## Workspace layout
